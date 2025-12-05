@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { HeroState, Enemy, FloatingText, Stats, Item, LogEntry, Illusion, Rune, Talent, Skill, FakeHero, ChatMessage, TalentNode } from '../types';
 import { BASE_HERO_STATS, LEVEL_STATS_GAIN, XP_FORMULA, ITEMS, INITIAL_SKILLS, TALENTS, getItemTotalCost, DOTA_HEROES, RU_NICKNAMES, TOXIC_TEAM_MESSAGES, ENEMY_CHAT_MESSAGES, HERO_DEATH_TEAM_MESSAGES, HERO_DEATH_ENEMY_MESSAGES, PRESTIGE_TREE } from '../constants';
@@ -44,20 +43,21 @@ export const useGameEngine = () => {
   // --- State ---
   const [hero, setHero] = useState<HeroState>(() => {
     try {
-        const saved = localStorage.getItem(SAVE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Deep merge to ensure new fields exist and skills are reset if structure changed
-            return {
-                ...DEFAULT_HERO_STATE,
-                ...parsed,
-                prestige: { ...DEFAULT_HERO_STATE.prestige, ...(parsed.prestige || {}) },
-                consumedTomes: { ...DEFAULT_HERO_STATE.consumedTomes, ...(parsed.consumedTomes || {}) },
-                baseStats: { ...DEFAULT_HERO_STATE.baseStats, ...(parsed.baseStats || {}) },
-                buffs: { ...DEFAULT_HERO_STATE.buffs, ...(parsed.buffs || {}) },
-                // Ensure skills are loaded but fall back to default if length mismatch (update safety)
-                skills: (parsed.skills && parsed.skills.length === INITIAL_SKILLS.length) ? parsed.skills : getInitialSkills()
-            };
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Deep merge to ensure new fields exist and skills are reset if structure changed
+                return {
+                    ...DEFAULT_HERO_STATE,
+                    ...parsed,
+                    prestige: { ...DEFAULT_HERO_STATE.prestige, ...(parsed.prestige || {}) },
+                    consumedTomes: { ...DEFAULT_HERO_STATE.consumedTomes, ...(parsed.consumedTomes || {}) },
+                    baseStats: { ...DEFAULT_HERO_STATE.baseStats, ...(parsed.baseStats || {}) },
+                    buffs: { ...DEFAULT_HERO_STATE.buffs, ...(parsed.buffs || {}) },
+                    skills: (parsed.skills && parsed.skills.length === INITIAL_SKILLS.length) ? parsed.skills : getInitialSkills()
+                };
+            }
         }
     } catch (e) {
         console.error("Failed to load save", e);
@@ -154,8 +154,9 @@ export const useGameEngine = () => {
   useEffect(() => {
       const saveInterval = setInterval(() => {
           try {
-              localStorage.setItem(SAVE_KEY, JSON.stringify(heroRef.current));
-              // Optional: console.log('Game Saved');
+              if (typeof window !== 'undefined') {
+                  localStorage.setItem(SAVE_KEY, JSON.stringify(heroRef.current));
+              }
           } catch (e) {
               console.error('Save failed', e);
           }
@@ -182,12 +183,12 @@ export const useGameEngine = () => {
     const agi = currentHero.baseStats.agility + ((currentHero.level - 1) * LEVEL_STATS_GAIN.agility) + tomes.agi;
     const int = currentHero.baseStats.intelligence + ((currentHero.level - 1) * LEVEL_STATS_GAIN.intelligence) + tomes.int;
 
-    let extra = { 
+    let extra: Stats = { 
         strength: 0, agility: 0, intelligence: 0, damage: 0, armor: 0, 
-        attackSpeed: 0, hpMax: 0, hpRegen: 0, manaRegen: 0, 
+        attackSpeed: 0, hpMax: 0, hpRegen: 0, manaRegen: 0, manaMax: 0,
         cleavePct: 0, armorCorruption: 0,
-        critChance: 0, critDamage: 1.0,
-        trueStrike: false, chainLightning: undefined as [number, number] | undefined, hpRegenPct: 0,
+        critChance: 0, critDamage: 0, evasion: 0, moveSpeed: 0,
+        trueStrike: false, chainLightning: undefined, hpRegenPct: 0,
         illusionDamageMult: 0, illusionDurationMult: 0, manaBurnMult: 0,
         lifesteal: 0, goldGainPct: 0, xpGainPct: 0, shopDiscountPct: 0
     };
@@ -199,11 +200,11 @@ export const useGameEngine = () => {
       const item = ITEMS[itemId];
       if (item?.stats) {
          Object.entries(item.stats).forEach(([k, v]) => {
+             const key = k as keyof Stats;
              // Handle standard additive stats
-             // @ts-ignore
-             if (typeof v === 'number' && !['cleavePct', 'evasion', 'critChance', 'critDamage', 'chainLightning', 'hpRegenPct'].includes(k)) {
+             if (typeof v === 'number' && !['cleavePct', 'evasion', 'critChance', 'critDamage', 'chainLightning', 'hpRegenPct'].includes(key)) {
                  // @ts-ignore
-                 extra[k] = (extra[k] || 0) + v;
+                 extra[key] = (extra[key] as number || 0) + v;
              }
          });
          // Handle special props
@@ -213,7 +214,7 @@ export const useGameEngine = () => {
          if (item.stats.critDamage) extra.critDamage = Math.max(extra.critDamage, item.stats.critDamage);
          if (item.stats.trueStrike) extra.trueStrike = true;
          if (item.stats.chainLightning) extra.chainLightning = item.stats.chainLightning;
-         if (item.stats.hpRegenPct) extra.hpRegenPct = Math.max(extra.hpRegenPct, item.stats.hpRegenPct);
+         if (item.stats.hpRegenPct) extra.hpRegenPct = Math.max(extra.hpRegenPct || 0, item.stats.hpRegenPct);
       }
     });
 
@@ -227,9 +228,12 @@ export const useGameEngine = () => {
 
        if (foundTalent?.stats) {
           Object.entries(foundTalent.stats).forEach(([k, v]) => {
-            // @ts-ignore
-            if (typeof v === 'number' && k !== 'evasion') extra[k] = (extra[k] || 0) + v;
-            if (k === 'evasion' && typeof v === 'number') evasionSources.push(v);
+            const key = k as keyof Stats;
+            if (typeof v === 'number' && key !== 'evasion') {
+                // @ts-ignore
+                extra[key] = (extra[key] as number || 0) + v;
+            }
+            if (key === 'evasion' && typeof v === 'number') evasionSources.push(v);
          });
        }
     });
@@ -240,9 +244,12 @@ export const useGameEngine = () => {
         const node = PRESTIGE_TREE.find(n => n.id === nodeId);
         if (node?.stats) {
              Object.entries(node.stats).forEach(([k, v]) => {
-                // @ts-ignore
-                if (typeof v === 'number' && k !== 'evasion') extra[k] = (extra[k] || 0) + v;
-                if (k === 'evasion' && typeof v === 'number') evasionSources.push(v);
+                const key = k as keyof Stats;
+                if (typeof v === 'number' && key !== 'evasion') {
+                    // @ts-ignore
+                    extra[key] = (extra[key] as number || 0) + v;
+                }
+                if (key === 'evasion' && typeof v === 'number') evasionSources.push(v);
              });
         }
     });
@@ -292,9 +299,9 @@ export const useGameEngine = () => {
       trueStrike: extra.trueStrike,
       chainLightning: extra.chainLightning,
       hpRegenPct: extra.hpRegenPct,
-      illusionDamageMult: (currentHero.baseStats.illusionDamageMult || 1) + extra.illusionDamageMult,
-      illusionDurationMult: (currentHero.baseStats.illusionDurationMult || 1) + extra.illusionDurationMult,
-      manaBurnMult: (currentHero.baseStats.manaBurnMult || 1) + extra.manaBurnMult,
+      illusionDamageMult: (currentHero.baseStats.illusionDamageMult || 1) + (extra.illusionDamageMult || 0),
+      illusionDurationMult: (currentHero.baseStats.illusionDurationMult || 1) + (extra.illusionDurationMult || 0),
+      manaBurnMult: (currentHero.baseStats.manaBurnMult || 1) + (extra.manaBurnMult || 0),
       lifesteal: extra.lifesteal,
       goldGainPct: extra.goldGainPct,
       xpGainPct: extra.xpGainPct,

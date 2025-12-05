@@ -1,6 +1,5 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
@@ -19,11 +18,11 @@
         --dota-green: #37d63e;
       }
       body {
-        font-family: 'VT323', monospace; /* Default text font */
+        font-family: 'VT323', monospace;
         background-color: #000;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Prevent scrolling on mobile */
+        overflow: hidden;
       }
       h1, h2, h3, h4, h5, h6, .font-pixel-title {
         font-family: 'Silkscreen', cursive;
@@ -32,7 +31,7 @@
         font-family: 'VT323', monospace;
       }
       
-      /* Custom scrollbar for game feel */
+      /* Custom scrollbar */
       ::-webkit-scrollbar {
         width: 12px;
         background: #111;
@@ -56,7 +55,7 @@
         background-color: #26292e;
         border-width: 4px;
         border-style: solid;
-        border-color: #4a5059 #111 #111 #4a5059; /* Light Top/Left, Dark Bot/Right */
+        border-color: #4a5059 #111 #111 #4a5059;
         box-shadow: 4px 4px 0 #000;
       }
       
@@ -64,7 +63,7 @@
         background-color: #0b0c0f;
         border-width: 2px;
         border-style: solid;
-        border-color: #000 #3a3f47 #3a3f47 #000; /* Dark Top/Left */
+        border-color: #000 #3a3f47 #3a3f47 #000;
       }
 
       .pixel-btn {
@@ -91,10 +90,10 @@
         100% { transform: translateY(-40px); opacity: 0; }
       }
       .animate-float {
-        animation: floatUp 1s steps(10) forwards; /* Steps for choppy retro feel */
+        animation: floatUp 1s steps(10) forwards;
       }
       
-      /* Weapon Animations */
+      /* Animations */
       @keyframes slashLeft {
         0% { transform: rotate(0deg) translate(0, 0); }
         50% { transform: rotate(-60deg) translate(-4px, 8px); }
@@ -113,15 +112,8 @@
         transform-origin: 24px 18px; 
         animation: slashRight 0.15s ease-in-out;
       }
-      .animate-spin-slow {
-        animation: spin 3s steps(12) infinite;
-      }
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.1",
@@ -134,8 +126,8 @@
 }
 </script>
 </head>
-  <body class="bg-[#111] text-[#ccc] overflow-hidden select-none font-pixel-text">
-    <div id="root"></div>
+  <body class="bg-[#111] text-[#ccc] overflow-hidden select-none font-pixel-text h-full">
+    <div id="root" class="h-full"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
