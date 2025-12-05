@@ -5,7 +5,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dota 2 Jungle Simulator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
@@ -19,7 +18,7 @@
         --dota-green: #37d63e;
       }
       body {
-        font-family: 'VT323', monospace; /* Default text font */
+        font-family: 'VT323', monospace;
         background-color: #000;
       }
       h1, h2, h3, h4, h5, h6, .font-pixel-title {
@@ -28,40 +27,38 @@
       .font-pixel-text {
         font-family: 'VT323', monospace;
       }
-      
-      /* Custom scrollbar for game feel */
+
       ::-webkit-scrollbar {
         width: 12px;
         background: #111;
         border-left: 2px solid #333;
       }
       ::-webkit-scrollbar-thumb {
-        background: #444; 
+        background: #444;
         border: 2px solid #111;
         box-shadow: inset 2px 2px 0 rgba(255,255,255,0.1);
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #666; 
+        background: #666;
       }
 
       .game-text-shadow {
         text-shadow: 2px 2px 0 #000;
       }
 
-      /* RETRO UI UTILITIES */
       .pixel-panel {
         background-color: #26292e;
         border-width: 4px;
         border-style: solid;
-        border-color: #4a5059 #111 #111 #4a5059; /* Light Top/Left, Dark Bot/Right */
+        border-color: #4a5059 #111 #111 #4a5059;
         box-shadow: 4px 4px 0 #000;
       }
-      
+
       .pixel-panel-inset {
         background-color: #0b0c0f;
         border-width: 2px;
         border-style: solid;
-        border-color: #000 #3a3f47 #3a3f47 #000; /* Dark Top/Left */
+        border-color: #000 #3a3f47 #3a3f47 #000;
       }
 
       .pixel-btn {
@@ -76,7 +73,6 @@
         box-shadow: none;
       }
 
-      /* PIXEL ART RENDERING */
       .pixel-art {
         image-rendering: pixelated;
         image-rendering: -moz-crisp-edges;
@@ -88,10 +84,9 @@
         100% { transform: translateY(-40px); opacity: 0; }
       }
       .animate-float {
-        animation: floatUp 1s steps(10) forwards; /* Steps for choppy retro feel */
+        animation: floatUp 1s steps(10) forwards;
       }
-      
-      /* Weapon Animations */
+
       @keyframes slashLeft {
         0% { transform: rotate(0deg) translate(0, 0); }
         50% { transform: rotate(-60deg) translate(-4px, 8px); }
@@ -103,11 +98,11 @@
         100% { transform: rotate(0deg) translate(0, 0); }
       }
       .animate-slash-left {
-        transform-origin: 8px 18px; 
-        animation: slashLeft 0.15s ease-in-out; 
+        transform-origin: 8px 18px;
+        animation: slashLeft 0.15s ease-in-out;
       }
       .animate-slash-right {
-        transform-origin: 24px 18px; 
+        transform-origin: 24px 18px;
         animation: slashRight 0.15s ease-in-out;
       }
       .animate-spin-slow {
@@ -118,20 +113,9 @@
         to { transform: rotate(360deg); }
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "vite": "https://aistudiocdn.com/vite@^7.2.4"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-[#111] text-[#ccc] overflow-hidden select-none font-pixel-text">
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
