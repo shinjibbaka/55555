@@ -19,7 +19,7 @@ export const ChatWidget: React.FC<Props> = ({ messages }) => {
   return (
     <div className="h-48 bg-[#000]/90 p-2 flex flex-col z-30 shrink-0 border-t-4 border-[#333] relative">
         <div className="flex-1 overflow-y-auto space-y-1 font-pixel-text text-sm custom-scrollbar pr-[230px]">
-            {messages.length === 0 && <div className="text-[#444] italic">&gt; Welcome to Dota 2 Jungle Simulator...</div>}
+            {messages.length === 0 && <div className="text-[#444] italic">> Welcome to Dota 2 Jungle Simulator...</div>}
             {messages.map(msg => (
                 <div key={msg.id} className="flex items-start gap-2 leading-tight">
                     {/* Hero Icon */}
@@ -64,7 +64,7 @@ export const ChatWidget: React.FC<Props> = ({ messages }) => {
         
         {/* Input Placeholder */}
         <div className="mt-1 bg-[#111] border border-[#333] p-1 flex items-center w-[calc(100%-230px)]">
-            <span className="text-[#666] text-xs font-pixel-text">&gt; Press ENTER to chat...</span>
+            <span className="text-[#666] text-xs font-pixel-text">> Press ENTER to chat...</span>
         </div>
     </div>
   );

@@ -6,6 +6,8 @@ import { BASE_HERO_STATS, LEVEL_STATS_GAIN, XP_FORMULA, ITEMS, INITIAL_SKILLS, T
 const WAVE_DELAY = 500; // Fast spawns!
 const RUNE_INTERVAL = 60000;
 const BONUS_ROUND_DURATION = 30000;
+const SAVE_KEY = 'dota_clicker_release_v1';
+const AUTO_SAVE_INTERVAL = 5000; // Save every 5 seconds
 
 // Helper to deep clone skills to prevent mutation of constants
 const getInitialSkills = () => JSON.parse(JSON.stringify(INITIAL_SKILLS));
@@ -42,7 +44,7 @@ export const useGameEngine = () => {
   // --- State ---
   const [hero, setHero] = useState<HeroState>(() => {
     try {
-        const saved = localStorage.getItem('dota_sim_hero_v14_clicker');
+        const saved = localStorage.getItem(SAVE_KEY);
         if (saved) {
             const parsed = JSON.parse(saved);
             // Deep merge to ensure new fields exist and skills are reset if structure changed
@@ -147,6 +149,19 @@ export const useGameEngine = () => {
   useEffect(() => { waveRef.current = wave; }, [wave]);
   useEffect(() => { radiantTeamRef.current = radiantTeam; }, [radiantTeam]);
   useEffect(() => { direTeamRef.current = direTeam; }, [direTeam]);
+
+  // --- Auto Save Effect ---
+  useEffect(() => {
+      const saveInterval = setInterval(() => {
+          try {
+              localStorage.setItem(SAVE_KEY, JSON.stringify(heroRef.current));
+              // Optional: console.log('Game Saved');
+          } catch (e) {
+              console.error('Save failed', e);
+          }
+      }, AUTO_SAVE_INTERVAL);
+      return () => clearInterval(saveInterval);
+  }, []);
 
   // --- Helpers ---
   
@@ -323,12 +338,13 @@ export const useGameEngine = () => {
      setIllusions([]);
      setTexts([]);
      setCombatLog([]);
+     localStorage.setItem(SAVE_KEY, JSON.stringify(newHeroState)); // Force Save on Rebirth
      addLog(`REBIRTH! Gained ${earnedPoints} Talent Points.`, "text-purple-400 font-bold text-lg");
   };
   
   const resetSave = () => {
       if (window.confirm("ARE YOU SURE? This will wipe all progress including Prestige.")) {
-          localStorage.removeItem('dota_sim_hero_v14_clicker');
+          localStorage.removeItem(SAVE_KEY);
           window.location.reload();
       }
   };
@@ -1064,7 +1080,7 @@ export const useGameEngine = () => {
           illusionsRef.current = illusionsList;
       }
       
-      if (Math.random() < 0.005) localStorage.setItem('dota_sim_hero_v14_clicker', JSON.stringify(heroRef.current));
+      // Auto-save logic is now handled by the useEffect above
       rafId = requestAnimationFrame(updateGame);
     };
 
