@@ -7,6 +7,9 @@ const WAVE_DELAY = 500; // Fast spawns!
 const RUNE_INTERVAL = 60000;
 const BONUS_ROUND_DURATION = 30000;
 
+// Helper to deep clone skills to prevent mutation of constants
+const getInitialSkills = () => JSON.parse(JSON.stringify(INITIAL_SKILLS));
+
 const DEFAULT_HERO_STATE: HeroState = {
     level: 1,
     xp: 0,
@@ -14,7 +17,7 @@ const DEFAULT_HERO_STATE: HeroState = {
     hp: 500,
     mana: 200,
     skillPoints: 1,
-    skills: INITIAL_SKILLS,
+    skills: getInitialSkills(),
     inventory: [],
     backpack: [], 
     itemCooldowns: {},
@@ -42,6 +45,7 @@ export const useGameEngine = () => {
         const saved = localStorage.getItem('dota_sim_hero_v14_clicker');
         if (saved) {
             const parsed = JSON.parse(saved);
+            // Deep merge to ensure new fields exist and skills are reset if structure changed
             return {
                 ...DEFAULT_HERO_STATE,
                 ...parsed,
@@ -49,7 +53,8 @@ export const useGameEngine = () => {
                 consumedTomes: { ...DEFAULT_HERO_STATE.consumedTomes, ...(parsed.consumedTomes || {}) },
                 baseStats: { ...DEFAULT_HERO_STATE.baseStats, ...(parsed.baseStats || {}) },
                 buffs: { ...DEFAULT_HERO_STATE.buffs, ...(parsed.buffs || {}) },
-                skills: parsed.skills || DEFAULT_HERO_STATE.skills 
+                // Ensure skills are loaded but fall back to default if length mismatch (update safety)
+                skills: (parsed.skills && parsed.skills.length === INITIAL_SKILLS.length) ? parsed.skills : getInitialSkills()
             };
         }
     } catch (e) {
@@ -85,6 +90,7 @@ export const useGameEngine = () => {
   const waveRef = useRef(wave);
   const radiantTeamRef = useRef(radiantTeam);
   const direTeamRef = useRef(direTeam);
+  const floatingTextBufferRef = useRef<FloatingText[]>([]);
   
   const waveStateRef = useRef<'fighting' | 'waiting' | 'spawning'>('waiting');
   const waveTimerRef = useRef(0);
@@ -303,6 +309,7 @@ export const useGameEngine = () => {
 
      const newHeroState: HeroState = {
         ...DEFAULT_HERO_STATE,
+        skills: getInitialSkills(), // CRITICAL: Use a fresh copy of skills
         prestige: newPrestige,
         godMode: hero.godMode,
         wtfMode: hero.wtfMode,
@@ -317,6 +324,13 @@ export const useGameEngine = () => {
      setTexts([]);
      setCombatLog([]);
      addLog(`REBIRTH! Gained ${earnedPoints} Talent Points.`, "text-purple-400 font-bold text-lg");
+  };
+  
+  const resetSave = () => {
+      if (window.confirm("ARE YOU SURE? This will wipe all progress including Prestige.")) {
+          localStorage.removeItem('dota_sim_hero_v14_clicker');
+          window.location.reload();
+      }
   };
   
   const unlockPrestigeNode = (nodeId: string) => {
@@ -352,9 +366,6 @@ export const useGameEngine = () => {
   const generateEnemies = (waveNum: number): Enemy[] => {
     const isBossWave = waveNum % 5 === 0;
     const isBonusWave = waveNum % 10 === 0;
-    
-    // Fix: Elites only appear after wave 10 to prevent early blockers
-    const isEliteWave = !isBossWave && !isBonusWave && waveNum > 10 && (waveNum % 3 === 0);
     
     const now = Date.now();
     const baseArmor = Math.floor((waveNum - 1) * 0.3);
@@ -395,34 +406,6 @@ export const useGameEngine = () => {
             range: 15, x: 70, y: 40, lastAttack: now + 1000,
             color: 'bg-purple-900', stunnedUntil: 0, targetId: 'hero'
         });
-    } else if (isEliteWave) {
-        // ELITE SQUAD: Small number (2-4), High stats, Special abilities
-        const count = 2 + Math.floor(waveNum / 20); // 2, then 3, then 4...
-        const types: ('bash' | 'evasion' | 'lifesteal')[] = ['bash', 'evasion', 'lifesteal'];
-        const ability = types[Math.floor(Math.random() * types.length)];
-        
-        for(let i=0; i<count; i++) {
-             const hp = 800 * (1 + waveNum * 0.25);
-             const dmg = 60 * (1 + waveNum * 0.2);
-             
-             newEnemies.push({
-                id: `elite-${waveNum}-${i}-${now}`, 
-                name: `Elite ${ability.toUpperCase()}`, 
-                type: 'elite', 
-                level: waveNum,
-                hp: hp, maxHp: hp,
-                mana: 500, maxMana: 500,
-                damage: dmg, armor: baseArmor + 5,
-                attackSpeed: 0.8,
-                xpReward: Math.floor(300 * (1 + waveNum * 0.15)), 
-                goldReward: Math.floor(200 * (1 + waveNum * 0.12)),
-                range: 15, x: 60 + Math.random() * 30, y: 15 + Math.random() * 70,
-                lastAttack: now + (Math.random() * 1000),
-                color: 'bg-red-900', stunnedUntil: 0, targetId: 'hero',
-                specialAbility: ability
-            });
-        }
-        addLog(`WARNING: Elite Squad with ${ability.toUpperCase()}!`, "text-red-500 font-bold");
     } else {
         // MASSIVE WAVES: Swarm mechanics for high levels
         let count = Math.min(3 + Math.floor(waveNum / 2), 60); // Cap at 60 to prevent total crash, but it's huge
@@ -673,18 +656,16 @@ export const useGameEngine = () => {
             return s;
         });
         addLog("Added 100 Talent Points", "text-purple-400");
-    }
+    },
+    resetSave
   };
 
   // --- Fake Hero Loop (Minimap & Chat) ---
   useEffect(() => {
     const interval = setInterval(() => {
         setGameTime(prev => prev + 1);
-        // ... (Minimap movement logic omitted for brevity, assumed unchanged or minimal updates) ...
-        // Re-implementing simplified logic to save space and focus on core optimization
         const moveHero = (h: FakeHero, isRadiant: boolean) => {
             const speed = 2; const jitter = Math.random() * 2 - 1;
-            const baseX = isRadiant ? 5 : 95; const baseY = isRadiant ? 95 : 5;
             let tx = 50, ty = 50; 
             
             if (h.lane === 'top') { tx = isRadiant ? 15 : 85; ty = 15; } 
@@ -740,7 +721,7 @@ export const useGameEngine = () => {
       const dt = timestamp - lastTimeRef.current;
       lastTimeRef.current = timestamp;
 
-      // Throttle render updates to 30 FPS for React state, but run logic at 60 FPS
+      // Throttle render updates
       frameCountRef.current++;
       const shouldRender = frameCountRef.current % 3 === 0;
 
@@ -750,11 +731,10 @@ export const useGameEngine = () => {
       const currentStats = statsRef.current;
       const dtSec = dt / 1000;
       
-      let frameTexts: FloatingText[] = [];
-
+      // Floating Text Logic: BUFFER it every frame, FLUSH it on render frame
       const addFrameText = (text: string, x: number, y: number, color: string, isCrit: boolean = false) => {
-          if (frameTexts.length < 20) { // Optimize: Limit floating text per frame
-             frameTexts.push({ id: Math.random().toString(36), text, x, y, color, timestamp: now, isCrit });
+          if (floatingTextBufferRef.current.length < 50) {
+             floatingTextBufferRef.current.push({ id: Math.random().toString(36), text, x, y, color, timestamp: now, isCrit });
           }
       };
 
@@ -762,7 +742,7 @@ export const useGameEngine = () => {
       let illusionsList = [...illusionsRef.current];
       let heroUpdates: Partial<HeroState> = {};
       
-      // ... (Hero Death Logic) ...
+      // --- HERO DEATH CHECK ---
       if (heroRef.current.isDead) {
         setHero(prev => {
           if (prev.respawnTimer <= 0) {
@@ -828,7 +808,7 @@ export const useGameEngine = () => {
           if (waveStateRef.current === 'waiting') waveStateRef.current = 'fighting';
       }
 
-      // ... (Skill Execution Logic - Simplified for brevity) ...
+      // ... (Skill Execution Logic) ...
       const executeSkill = (skillId: string) => {
          const skillIndex = heroRef.current.skills.findIndex(s => s.id === skillId);
          const skill = heroRef.current.skills[skillIndex];
@@ -839,7 +819,6 @@ export const useGameEngine = () => {
          if (pendingMana < manaCost) return;
          let cooldown = isWtf ? 0 : skill.cooldown;
          if (!isWtf) {
-             // ... (Talent/Prestige reduction logic) ...
              const nodes = heroRef.current.prestige?.unlockedNodes || [];
              if (nodes.includes('abil_cap')) cooldown *= 0.75;
          }
@@ -860,7 +839,6 @@ export const useGameEngine = () => {
              heroUpdates.buffs = { ...heroRef.current.buffs, blinkUntil: now + 3000 };
              addFrameText("BLINK!", heroRef.current.x, heroRef.current.y, 'text-purple-400');
          } else if (skillId === 'manavoid') {
-             // ... (Mana Void Logic) ...
              const bestTarget = enemiesList.reduce((best, curr) => (curr.maxMana - curr.mana > (best?.maxMana - best?.mana || -1) ? curr : best), null as Enemy | null);
              if (bestTarget) {
                  const damage = Math.max(50, (bestTarget.maxMana - bestTarget.mana) * 1.1);
@@ -881,7 +859,8 @@ export const useGameEngine = () => {
           const targetId = manualAttackQueueRef.current.shift();
           const target = enemiesList.find(e => e.id === targetId);
           if (target && target.hp > 0) {
-              const clickDmg = Math.ceil(statsRef.current.damage * 0.5);
+              // BUFF: Manual click deals 100% damage now to encourage clicking
+              const clickDmg = Math.ceil(statsRef.current.damage);
               target.hp -= clickDmg;
               addFrameText(`${clickDmg}`, target.x + (Math.random()*4-2), target.y - 5 + (Math.random()*4-2), 'text-white/80 font-mono text-xs');
           }
@@ -919,8 +898,8 @@ export const useGameEngine = () => {
       // Regen
       let hpRegenTick = currentStats.hpRegen * dtSec;
       let manaRegenTick = currentStats.manaRegen * dtSec;
-      let currentHp = Math.min(currentStats.hpMax, (heroUpdates.hp !== undefined ? heroUpdates.hp : heroRef.current.hp) + hpRegenTick);
-      let currentMana = Math.min(currentStats.manaMax, (heroUpdates.mana !== undefined ? heroUpdates.mana : heroRef.current.mana) + manaRegenTick);
+      let currentHp = Math.max(0, Math.min(currentStats.hpMax, (heroUpdates.hp !== undefined ? heroUpdates.hp : heroRef.current.hp) + hpRegenTick));
+      let currentMana = Math.max(0, Math.min(currentStats.manaMax, (heroUpdates.mana !== undefined ? heroUpdates.mana : heroRef.current.mana) + manaRegenTick));
       
       illusionsList = illusionsList.filter(i => now - i.spawnTime < i.duration && i.hp > 0);
       
@@ -944,12 +923,6 @@ export const useGameEngine = () => {
             let isCrit = false;
             let hit = true;
             
-            // ELITE ABILITY: Evasion
-            if (isHero && t.specialAbility === 'evasion' && Math.random() < 0.3) {
-                 hit = false;
-                 addFrameText("MISS", t.x, t.y, "text-red-500 font-bold");
-            }
-
             if (hit) {
                 if (isHero && currentStats.critChance > 0 && Math.random() < currentStats.critChance) {
                     damage *= currentStats.critDamage; isCrit = true;
@@ -1022,21 +995,25 @@ export const useGameEngine = () => {
                  const dmg = enemy.damage;
                  let mitigation = 1 - ((0.06 * currentStats.armor) / (1 + 0.06 * currentStats.armor));
                  currentHp -= Math.max(1, dmg * mitigation);
-                 
-                 // ELITE ABILITIES
-                 if (enemy.specialAbility === 'bash' && Math.random() < 0.25) {
-                     // Stun logic not fully implemented on hero yet, but visual text
-                     addFrameText("BASHED!", heroRef.current.x, heroRef.current.y, "text-red-500 font-bold");
-                 }
-                 if (enemy.specialAbility === 'lifesteal') {
-                     enemy.hp = Math.min(enemy.maxHp, enemy.hp + dmg * 0.5);
-                     addFrameText(`+${Math.floor(dmg*0.5)}`, enemy.x, enemy.y, "text-green-500 text-xs");
-                 }
              } else {
                  addFrameText("MISS", heroRef.current.x, heroRef.current.y, "text-slate-500 font-bold");
              }
              enemy.lastAttack = now;
           }
+      }
+
+      // Check Hero Death
+      if (currentHp <= 0 && !heroRef.current.godMode && !heroRef.current.isDead) {
+         currentHp = 0;
+         heroUpdates.isDead = true;
+         heroUpdates.respawnTimer = 10 + (heroRef.current.level * 2);
+         const deathMsg = HERO_DEATH_TEAM_MESSAGES[Math.floor(Math.random() * HERO_DEATH_TEAM_MESSAGES.length)];
+         const randomTeammate = radiantTeam[Math.floor(Math.random()*radiantTeam.length)];
+         if (randomTeammate) addChatMessage(randomTeammate.nickname, deathMsg, 'radiant', randomTeammate.name);
+         
+         const deathMsgEnemy = HERO_DEATH_ENEMY_MESSAGES[Math.floor(Math.random() * HERO_DEATH_ENEMY_MESSAGES.length)];
+         const randomEnemy = direTeam[Math.floor(Math.random()*direTeam.length)];
+         if (randomEnemy) addChatMessage(randomEnemy.nickname, deathMsgEnemy, 'dire', randomEnemy.name);
       }
 
       if (survivors.length === 0 && enemiesRef.current.length > 0) {
@@ -1048,9 +1025,12 @@ export const useGameEngine = () => {
               heroUpdates.highestWave = Math.max(heroRef.current.highestWave, nextWave);
           }
           waveStateRef.current = 'waiting';
-      } else if (survivors.length !== enemiesRef.current.length) {
-          if (shouldRender) setEnemies(survivors); // Only update state if rendered
-          enemiesRef.current = survivors; // Always update ref
+      } else {
+          // FORCE STATE SYNC if shouldRender, regardless of count, to remove zombies
+          if (shouldRender) {
+             setEnemies(survivors);
+          }
+          enemiesRef.current = survivors; 
       }
 
       // Cleanup & Commit
@@ -1060,7 +1040,8 @@ export const useGameEngine = () => {
           lastDpsUpdateRef.current = now;
       }
 
-      heroUpdates.hp = currentHp; heroUpdates.mana = currentMana;
+      heroUpdates.hp = Math.max(0, currentHp); 
+      heroUpdates.mana = Math.max(0, currentMana);
       
       // Only trigger React updates for Hero on render frames or if death happened
       if (shouldRender || heroUpdates.isDead) {
@@ -1068,7 +1049,14 @@ export const useGameEngine = () => {
           heroRef.current = nextHeroState;
           setHero(nextHeroState);
           setIllusions(illusionsList);
-          if (frameTexts.length > 0) setTexts(prev => [...prev, ...frameTexts].slice(-20)); // Keep strict limit
+          
+          // Flush Floating Texts from Buffer
+          if (floatingTextBufferRef.current.length > 0) {
+              setTexts(prev => [...prev, ...floatingTextBufferRef.current].slice(-20));
+              floatingTextBufferRef.current = []; // Clear buffer after flush
+          }
+          
+          // Cleanup old texts
           setTimeout(() => setTexts(prev => prev.filter(t => t.timestamp > Date.now() - 1000)), 1000);
       } else {
           // If not rendering, just update the ref

@@ -2,7 +2,7 @@
 import React from 'react';
 import { PrestigeData } from '../types';
 import { PRESTIGE_TREE } from '../constants';
-import { X, Check } from 'lucide-react';
+import { X, Check, Lock } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -117,17 +117,19 @@ export const TalentTreeModal: React.FC<Props> = ({ isOpen, onClose, prestige, on
                   w-14 h-14 border-4 flex items-center justify-center text-xl relative shadow-[4px_4px_0_#000] transition-all
                   ${isUnlocked 
                     ? 'bg-[#e2d096] border-[#fff] text-black' 
-                    : (canBuy 
-                        ? 'bg-[#333] border-[#e2d096] text-[#e2d096] animate-pulse hover:bg-[#444]' 
-                        : 'bg-[#111] border-[#333] text-[#444] grayscale cursor-not-allowed')
+                    : (isMutexLocked
+                        ? 'bg-[#220000] border-[#550000] text-[#550000] cursor-not-allowed opacity-50'
+                        : (canBuy 
+                            ? 'bg-[#333] border-[#e2d096] text-[#e2d096] animate-pulse hover:bg-[#444]' 
+                            : 'bg-[#111] border-[#333] text-[#444] grayscale cursor-not-allowed'))
                   }
                 `}
               >
-                {node.icon}
+                {isMutexLocked ? <Lock size={20} /> : node.icon}
                 {isUnlocked && <div className="absolute -top-2 -right-2 bg-green-500 text-black border-2 border-black p-0.5"><Check size={12} strokeWidth={4} /></div>}
               </button>
 
-              {/* Tooltip: Rendered absolutely relative to the node but with extremely high z-index and explicit positioning logic */}
+              {/* Tooltip */}
               <div 
                 className={`
                     absolute left-1/2 -translate-x-1/2 w-64 bg-[#1b1d21] border-2 border-[#fff] p-3 text-center 
@@ -139,7 +141,12 @@ export const TalentTreeModal: React.FC<Props> = ({ isOpen, onClose, prestige, on
                  <h3 className="text-[#e2d096] font-bold font-pixel-title uppercase text-sm">{node.name}</h3>
                  <p className="text-[#ccc] text-xs my-2 leading-relaxed">{node.description}</p>
                  <div className="text-xs uppercase font-bold text-[#666]">
-                    {isUnlocked ? <span className="text-green-500">Learned</span> : <span>Cost: {node.cost} Points</span>}
+                    {isUnlocked 
+                        ? <span className="text-green-500">Learned</span> 
+                        : (isMutexLocked 
+                            ? <span className="text-red-500">Locked by Choice</span> 
+                            : <span>Cost: {node.cost} Points</span>)
+                    }
                  </div>
               </div>
             </div>

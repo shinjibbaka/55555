@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Shield, DollarSign, ChevronsUp, Heart, Skull, Zap, Star } from 'lucide-react';
+import { X, Shield, DollarSign, ChevronsUp, Heart, Skull, Zap, Star, Trash2 } from 'lucide-react';
 
 interface Props {
     adminActions: {
@@ -11,6 +11,7 @@ interface Props {
         toggleGodMode: () => void;
         toggleWtfMode: () => void;
         addTalentPoints: () => void;
+        resetSave: () => void;
     };
     godMode: boolean;
 }
@@ -75,6 +76,11 @@ export const AdminPanel: React.FC<Props> = ({ adminActions, godMode }) => {
                     <button onClick={adminActions.toggleWtfMode} className="col-span-2 p-2 flex items-center justify-center gap-2 border-2 bg-[#111] border-blue-900 text-blue-400 hover:bg-[#001133] pixel-btn">
                         <Zap size={16} />
                         <span className="text-xs font-bold">WTF MODE</span>
+                    </button>
+
+                    <button onClick={adminActions.resetSave} className="col-span-2 mt-4 p-2 flex items-center justify-center gap-2 border-2 bg-[#330000] border-red-700 text-red-500 hover:bg-[#550000] pixel-btn">
+                        <Trash2 size={16} />
+                        <span className="text-xs font-bold">WIPE SAVE DATA</span>
                     </button>
                 </div>
             </div>

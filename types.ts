@@ -170,7 +170,7 @@ export interface Illusion {
 export interface Enemy {
   id: string;
   name: string;
-  type: 'melee' | 'ranged' | 'healer' | 'boss' | 'bonus' | 'elite';
+  type: 'melee' | 'ranged' | 'healer' | 'boss' | 'bonus';
   level: number;
   hp: number;
   maxHp: number;
@@ -188,9 +188,6 @@ export interface Enemy {
   color: string;
   stunnedUntil: number; // timestamp
   targetId: string | null; // 'hero' or illusion ID
-  
-  // Elite Mechanics
-  specialAbility?: 'bash' | 'evasion' | 'lifesteal';
 }
 
 export interface FloatingText {

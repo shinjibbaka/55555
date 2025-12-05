@@ -182,36 +182,6 @@ const PixelCourier = memo(() => (
     </svg>
 ));
 
-const PixelElite = memo(({ isAttacking, ability }: { isAttacking: boolean, ability: string }) => {
-    // Elite Visuals based on ability
-    const color = ability === 'evasion' ? '#818cf8' : (ability === 'lifesteal' ? '#ef4444' : '#f59e0b');
-    return (
-        <svg viewBox="0 0 24 24" className="w-full h-full pixel-art overflow-visible drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]" shapeRendering="crispEdges">
-             <ellipse cx="12" cy="22" rx="6" ry="2" fill="rgba(0,0,0,0.6)" />
-             <rect x="8" y="8" width="8" height="10" fill="#1f2937" /> {/* Dark Armor */}
-             <rect x="9" y="9" width="6" height="8" fill={color} opacity="0.8" />
-             <rect x="8" y="18" width="2" height="4" fill="#111" />
-             <rect x="14" y="18" width="2" height="4" fill="#111" />
-             <rect x="8" y="4" width="8" height="5" fill="#111" /> {/* Helm */}
-             <rect x="9" y="6" width="2" height="1" fill="#fff" className="animate-pulse" />
-             <rect x="13" y="6" width="2" height="1" fill="#fff" className="animate-pulse" />
-             
-             {/* Weapon */}
-             <g className={`origin-[18px_14px] ${isAttacking ? 'animate-slash-right' : ''}`}>
-                 <rect x="17" y="10" width="2" height="8" fill="#ccc" />
-                 <path d="M17,10 L20,4 L22,6 L19,12 Z" fill={color} />
-             </g>
-             
-             {/* Ability Icon Indicator */}
-             <g transform="translate(0, -6)">
-                 {ability === 'evasion' && <text x="12" y="0" textAnchor="middle" fontSize="6" fill="#818cf8" className="font-pixel-text">MISS</text>}
-                 {ability === 'bash' && <text x="12" y="0" textAnchor="middle" fontSize="6" fill="#f59e0b" className="font-pixel-text">STUN</text>}
-                 {ability === 'lifesteal' && <text x="12" y="0" textAnchor="middle" fontSize="6" fill="#ef4444" className="font-pixel-text">VAMP</text>}
-             </g>
-        </svg>
-    );
-});
-
 const PixelTree = memo(() => (
     <svg viewBox="0 0 32 32" className="w-full h-full pixel-art drop-shadow-xl" shapeRendering="crispEdges">
         <ellipse cx="16" cy="28" rx="8" ry="3" fill="#111" opacity="0.5" />
@@ -372,8 +342,8 @@ export const Arena: React.FC<Props> = ({ hero, enemies, illusions = [], runes = 
         <div className={`absolute w-32 h-32 z-20 transition-transform duration-75 ${isHeroAttacking ? 'translate-x-2' : 'translate-x-0'}`} style={{ left: `${hero.x}%`, top: `${hero.y}%`, marginTop: '-64px', marginLeft: '-64px' }}>
             <div className={`w-full h-full relative ${hero.isDead ? 'grayscale opacity-50' : ''}`}><PixelHero isAttacking={isHeroAttacking} /></div>
             <div className="absolute -top-4 left-4 right-4 flex flex-col gap-1 z-30">
-                <div className="h-2 bg-black border border-[#333]"><div style={{width: `${(hero.hp/hero.baseStats.hpMax)*100}%`}} className="h-full bg-[#1a6e2e]"></div></div>
-                <div className="h-1 bg-black border border-[#333]"><div style={{width: `${(hero.mana/hero.baseStats.manaMax)*100}%`}} className="h-full bg-[#1d4ed8]"></div></div>
+                <div className="h-2 bg-black border border-[#333]"><div style={{width: `${Math.max(0, (hero.hp/hero.baseStats.hpMax)*100)}%`}} className="h-full bg-[#1a6e2e]"></div></div>
+                <div className="h-1 bg-black border border-[#333]"><div style={{width: `${Math.max(0, (hero.mana/hero.baseStats.manaMax)*100)}%`}} className="h-full bg-[#1d4ed8]"></div></div>
             </div>
         </div>
 
@@ -382,17 +352,16 @@ export const Arena: React.FC<Props> = ({ hero, enemies, illusions = [], runes = 
             const isStunned = currentTime < enemy.stunnedUntil;
             const isBoss = enemy.type === 'boss';
             const isBonus = enemy.type === 'bonus';
-            const isElite = enemy.type === 'elite';
             
-            const sizeClass = isBoss ? 'w-64 h-64 z-30' : (isBonus ? 'w-32 h-32 z-30' : (isElite ? 'w-32 h-32 z-25' : 'w-24 h-24 z-20'));
-            const marginTop = isBoss ? '-128px' : (isBonus || isElite ? '-64px' : '-48px');
-            const marginLeft = isBoss ? '-128px' : (isBonus || isElite ? '-64px' : '-48px');
+            const sizeClass = isBoss ? 'w-64 h-64 z-30' : (isBonus ? 'w-32 h-32 z-30' : 'w-24 h-24 z-20');
+            const marginTop = isBoss ? '-128px' : (isBonus ? '-64px' : '-48px');
+            const marginLeft = isBoss ? '-128px' : (isBonus ? '-64px' : '-48px');
 
             return (
             <div key={enemy.id} onClick={(e) => onEnemyClick(e, enemy.id)} className={`absolute ${sizeClass} transition-all duration-75 cursor-pointer active:scale-95 hover:brightness-110 ${isEnemyAttacking ? '-translate-x-2' : 'translate-x-0'}`} style={{ left: `${enemy.x}%`, top: `${enemy.y}%`, marginTop, marginLeft }}>
                 {!isBonus && (
                     <div className={`absolute ${isBoss ? '-top-12 w-32' : '-top-4 w-16'} left-1/2 -translate-x-1/2 flex flex-col gap-[1px] z-40`}>
-                        <div className="h-2 bg-black border border-[#333] pointer-events-none"><div className="h-full bg-[#a31616]" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }} /></div>
+                        <div className="h-2 bg-black border border-[#333] pointer-events-none"><div className="h-full bg-[#a31616]" style={{ width: `${Math.max(0, (enemy.hp / enemy.maxHp) * 100)}%` }} /></div>
                     </div>
                 )}
                 <div className={`w-full h-full relative ${isStunned ? 'grayscale brightness-50' : ''}`}>
@@ -400,15 +369,12 @@ export const Arena: React.FC<Props> = ({ hero, enemies, illusions = [], runes = 
                         <PixelBoss isAttacking={isEnemyAttacking} />
                     ) : (isBonus ? (
                         <div className="animate-bounce"><PixelCourier /></div>
-                    ) : (isElite ? (
-                        <PixelElite isAttacking={isEnemyAttacking} ability={enemy.specialAbility || ''} />
                     ) : (
                         enemy.type === 'melee' ? <PixelCreepMelee isAttacking={isEnemyAttacking} color={enemy.color} /> : <PixelCreepRanged isAttacking={isEnemyAttacking} />
-                    )))}
+                    ))}
                     {isStunned && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-2xl animate-spin pixel-art">💫</div>}
                 </div>
                 {isBoss && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-sm font-bold text-[#e2d096] bg-black/50 px-2 font-pixel-title border border-[#e2d096]">ROSHAN</div>}
-                {isElite && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-red-500 bg-black/50 px-2 font-pixel-title border border-red-900">ELITE</div>}
                 {isBonus && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold text-[#e2d096] bg-black/50 px-2 border border-yellow-500 pointer-events-none font-pixel-title">GOLDEN COURIER</div>}
             </div>
             );

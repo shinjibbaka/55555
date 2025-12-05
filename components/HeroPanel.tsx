@@ -235,9 +235,9 @@ export const HeroPanel: React.FC<Props> = ({
               <span className="text-[#37d63e]">+{stats.hpRegen.toFixed(1)}</span>
             </div>
             <div className="h-6 bg-[#000] border-2 border-[#333] relative">
-              <div className="h-full bg-[#1a6e2e]" style={{ width: `${(hero.hp / stats.hpMax) * 100}%` }}></div>
+              <div className="h-full bg-[#1a6e2e]" style={{ width: `${Math.max(0, (hero.hp / stats.hpMax) * 100)}%` }}></div>
               <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white drop-shadow-[1px_1px_0_#000]">
-                  {Math.floor(hero.hp)} / {stats.hpMax}
+                  {Math.floor(Math.max(0, hero.hp))} / {stats.hpMax}
               </div>
             </div>
          </div>
@@ -248,9 +248,9 @@ export const HeroPanel: React.FC<Props> = ({
               <span className="text-[#3b82f6]">+{stats.manaRegen.toFixed(1)}</span>
             </div>
             <div className="h-6 bg-[#000] border-2 border-[#333] relative">
-              <div className="h-full bg-[#1d4ed8]" style={{ width: `${(hero.mana / stats.manaMax) * 100}%` }}></div>
+              <div className="h-full bg-[#1d4ed8]" style={{ width: `${Math.max(0, (hero.mana / stats.manaMax) * 100)}%` }}></div>
               <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white drop-shadow-[1px_1px_0_#000]">
-                  {Math.floor(hero.mana)} / {stats.manaMax}
+                  {Math.floor(Math.max(0, hero.mana))} / {stats.manaMax}
               </div>
             </div>
          </div>
