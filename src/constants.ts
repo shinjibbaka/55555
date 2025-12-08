@@ -458,14 +458,11 @@ export const INITIAL_SKILLS: Skill[] = [
     }
   },
   { 
-    id: 'blink', name: 'Blink', level: 0, maxLevel: 4, 
-    description: 'Active: Short distance teleportation. Leaves an Illusion at the start location that TAUNTS enemies.', 
-    lore: 'Anti-Mage plays a cat and mouse game, appearing and vanishing at will.',
-    color: 'bg-purple-600', type: 'Active', cooldown: 6, manaCost: 45, lastCast: 0,
-    params: {
-      'Illusion Duration (s)': [5, 6, 7, 8],
-      'Illusion Dmg Taken %': [300, 275, 250, 225]
-    }
+    id: 'blink', name: 'DISABLED', level: 0, maxLevel: 4, 
+    description: 'This skill has been disabled.', 
+    lore: 'Anti-Mage forgot how to blink.',
+    color: 'bg-gray-600', type: 'Active', cooldown: 9999, manaCost: 0, lastCast: 0,
+    params: {}
   },
   { 
     id: 'counterspell', name: 'Counterspell', level: 0, maxLevel: 4, 

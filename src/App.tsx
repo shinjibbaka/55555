@@ -27,7 +27,11 @@ const App: React.FC = () => {
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden bg-black font-sans text-slate-200 selection:bg-purple-500/30 relative">
       
-      {/* Top Bar */}
+      {/* SYSTEM RESET Banner */}
+      <div className="absolute top-0 left-0 bg-red-600 text-white font-bold px-2 py-1 z-[100] text-xs pointer-events-none border-b-2 border-r-2 border-red-800 animate-pulse">
+          SYSTEM RESET - BLINK PURGED
+      </div>
+
       <Scoreboard 
         radiantTeam={engine.radiantTeam}
         direTeam={engine.direTeam}

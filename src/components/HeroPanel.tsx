@@ -315,18 +315,19 @@ export const HeroPanel: React.FC<Props> = ({
                const isOnCooldown = now - skill.lastCast < skill.cooldown * 1000;
                const cdRemaining = Math.ceil((skill.cooldown * 1000 - (now - skill.lastCast)) / 1000);
                const isActive = skill.type === 'Active';
+               const isBlink = skill.id === 'blink';
                
                return (
                <div key={skill.id} className="relative aspect-square">
                   <div 
-                    className={`w-full h-full relative border-2 border-[#444] bg-black ${isActive && skill.level > 0 ? 'hover:border-[#e2d096] cursor-pointer' : ''}`}
+                    className={`w-full h-full relative border-2 border-[#444] bg-black ${isActive && skill.level > 0 && !isBlink ? 'hover:border-[#e2d096] cursor-pointer' : ''}`}
                     onMouseEnter={(e) => handleMouseEnter(e, getSkillTooltipContent(skill))}
                     onMouseLeave={onHideTooltip}
                   >
                     <button 
-                        disabled={!isActive || isOnCooldown || skill.level === 0}
+                        disabled={!isActive || isOnCooldown || skill.level === 0 || isBlink}
                         onClick={() => isActive && castSkill(skill.id)}
-                        className={`w-full h-full flex items-center justify-center relative active:translate-y-0.5 ${skill.level === 0 ? 'grayscale opacity-30' : ''}`}
+                        className={`w-full h-full flex items-center justify-center relative active:translate-y-0.5 ${skill.level === 0 || isBlink ? 'grayscale opacity-30 cursor-not-allowed' : ''}`}
                     >
                          {/* PIXEL SKILL ICON */}
                         <div className="w-full h-full">
@@ -348,7 +349,7 @@ export const HeroPanel: React.FC<Props> = ({
                     </button>
 
                     {/* Level Up Button */}
-                    {hero.skillPoints > 0 && skill.level < skill.maxLevel && (
+                    {hero.skillPoints > 0 && skill.level < skill.maxLevel && !isBlink && (
                         <button 
                             onClick={(e) => { e.stopPropagation(); onSkillLevelUp(skill.id); }}
                             className="absolute -top-1 -right-1 w-4 h-4 bg-[#e2d096] text-black border border-white flex items-center justify-center z-30 hover:scale-110"

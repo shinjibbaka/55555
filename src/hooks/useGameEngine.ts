@@ -48,7 +48,6 @@ export const useGameEngine = () => {
             const saved = localStorage.getItem(SAVE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Deep merge to ensure new fields exist and skills are reset if structure changed
                 return {
                     ...DEFAULT_HERO_STATE,
                     ...parsed,
@@ -202,13 +201,11 @@ export const useGameEngine = () => {
       if (item?.stats) {
          Object.entries(item.stats).forEach(([k, v]) => {
              const key = k as keyof Stats;
-             // Handle standard additive stats
              if (typeof v === 'number' && !['cleavePct', 'evasion', 'critChance', 'critDamage', 'chainLightning', 'hpRegenPct'].includes(key)) {
                  // @ts-ignore
                  extra[key] = (extra[key] as number || 0) + v;
              }
          });
-         // Handle special props
          if (item.stats.cleavePct) extra.cleavePct = Math.max(extra.cleavePct, item.stats.cleavePct);
          if (item.stats.evasion) evasionSources.push(item.stats.evasion);
          if (item.stats.critChance) extra.critChance = Math.max(extra.critChance, item.stats.critChance);
@@ -263,7 +260,6 @@ export const useGameEngine = () => {
         evasionSources.push(evVal);
     }
     
-    // Stack Evasion Multiplicatively
     const finalEvasion = 1 - evasionSources.reduce((acc, val) => acc * (1 - val), 1);
 
     const now = Date.now();
@@ -314,8 +310,6 @@ export const useGameEngine = () => {
     setComputedStats(calculateStats(hero));
   }, [hero, calculateStats]);
 
-  // --- Actions ---
-
   const rebirth = () => {
      const earnedPoints = Math.floor(hero.highestWave / 10);
      if (earnedPoints <= 0 && hero.prestige.rebirthCount === 0) {
@@ -332,7 +326,7 @@ export const useGameEngine = () => {
 
      const newHeroState: HeroState = {
         ...DEFAULT_HERO_STATE,
-        skills: getInitialSkills(), // CRITICAL: Use a fresh copy of skills
+        skills: getInitialSkills(),
         prestige: newPrestige,
         godMode: hero.godMode,
         wtfMode: hero.wtfMode,
@@ -346,7 +340,7 @@ export const useGameEngine = () => {
      setIllusions([]);
      setTexts([]);
      setCombatLog([]);
-     localStorage.setItem(SAVE_KEY, JSON.stringify(newHeroState)); // Force Save on Rebirth
+     localStorage.setItem(SAVE_KEY, JSON.stringify(newHeroState));
      addLog(`REBIRTH! Gained ${earnedPoints} Talent Points.`, "text-purple-400 font-bold text-lg");
   };
   
@@ -390,16 +384,13 @@ export const useGameEngine = () => {
   const generateEnemies = (waveNum: number): Enemy[] => {
     const isBossWave = waveNum % 5 === 0;
     const isBonusWave = waveNum % 10 === 0;
-    
     const now = Date.now();
     const baseArmor = Math.floor((waveNum - 1) * 0.3);
-
     const newEnemies: Enemy[] = [];
 
     if (isBonusWave) {
         bonusEndTimeRef.current = now + BONUS_ROUND_DURATION;
         setBonusTimer(BONUS_ROUND_DURATION);
-        
         const donkeyHp = 1000000000; 
         newEnemies.push({
             id: `bonus-donkey-${waveNum}`,
@@ -411,13 +402,10 @@ export const useGameEngine = () => {
             range: 0, x: 70, y: 50, lastAttack: now,
             color: 'bg-yellow-400', stunnedUntil: 0, targetId: null
         });
-        
     } else if (isBossWave) {
-        // SCALING: Stronger bosses in late game
         const scalingMult = 1 + (waveNum * 0.15) + (waveNum > 30 ? Math.pow(waveNum - 30, 1.5) * 0.05 : 0);
         const baseHp = 2500 * Math.pow(1.35, waveNum / 5);
         const baseDmg = 120 * scalingMult;
-        
         newEnemies.push({
             id: `boss-${waveNum}-${now}`,
             name: 'Roshan', type: 'boss', level: waveNum,
@@ -431,8 +419,7 @@ export const useGameEngine = () => {
             color: 'bg-purple-900', stunnedUntil: 0, targetId: 'hero'
         });
     } else {
-        // MASSIVE WAVES: Swarm mechanics for high levels
-        let count = Math.min(3 + Math.floor(waveNum / 2), 60); // Cap at 60 to prevent total crash, but it's huge
+        let count = Math.min(3 + Math.floor(waveNum / 2), 60);
         if (waveNum > 40) count = Math.min(20 + Math.floor((waveNum - 40) * 1.5), 60);
 
         for (let i = 0; i < count; i++) {
@@ -444,7 +431,6 @@ export const useGameEngine = () => {
           const hpMult = 1 + (waveNum * 0.12);
           const dmgMult = 1 + (waveNum * 0.10);
           
-          // Slightly weaker individual stats for mass waves to balance count
           let baseHp = 280; let baseMana = 100; let baseDmg = 25; let range = 10;
           let color = 'bg-red-700'; let name = 'Satyr';
 
@@ -849,19 +835,8 @@ export const useGameEngine = () => {
          if (!isWtf && now - skill.lastCast < cooldown * 1000) return;
 
          if (skillId === 'blink') {
-             const newX = 10 + Math.random() * 30; const newY = 20 + Math.random() * 60;
-             let duration = 6000;
-             if (currentStats.illusionDurationMult) duration *= currentStats.illusionDurationMult;
-             illusionsList.push({
-                 id: `ill-${now}-${Math.random()}`, x: heroRef.current.x, y: heroRef.current.y,
-                 hp: heroRef.current.hp, maxHp: statsRef.current.hpMax,
-                 damage: Math.floor(statsRef.current.damage * 0.33 * (currentStats.illusionDamageMult || 1)),
-                 attackSpeed: statsRef.current.attackSpeed, spawnTime: now, duration, maxDuration: duration,
-                 lastAttackTime: 0, incomingDmgMult: 3
-             });
-             heroUpdates.x = newX; heroUpdates.y = newY;
-             heroUpdates.buffs = { ...heroRef.current.buffs, blinkUntil: now + 3000 };
-             addFrameText("BLINK!", heroRef.current.x, heroRef.current.y, 'text-purple-400');
+             // SKILL DISABLED: STUB ONLY
+             addFrameText("DISABLED", heroRef.current.x, heroRef.current.y - 20, 'text-gray-500 font-mono text-xs');
          } else if (skillId === 'manavoid') {
              const bestTarget = enemiesList.reduce((best, curr) => (curr.maxMana - curr.mana > (best?.maxMana - best?.mana || -1) ? curr : best), null as Enemy | null);
              if (bestTarget) {
@@ -1010,18 +985,38 @@ export const useGameEngine = () => {
           if (enemy.stunnedUntil > now) continue;
           if (enemy.type === 'bonus') continue;
           
+          // --- UPDATED ENEMY ATTACK LOGIC ---
           if (now - enemy.lastAttack >= (1000 / enemy.attackSpeed)) {
              let hit = true;
-             // Hero Evasion
-             if (!currentStats.trueStrike && Math.random() < currentStats.evasion) hit = false;
-             
-             if (hit) {
-                 const dmg = enemy.damage;
-                 let mitigation = 1 - ((0.06 * currentStats.armor) / (1 + 0.06 * currentStats.armor));
-                 currentHp -= Math.max(1, dmg * mitigation);
-             } else {
-                 addFrameText("MISS", heroRef.current.x, heroRef.current.y, "text-slate-500 font-bold");
+             // Check who is the target
+             let targetIsHero = true;
+             let targetIllusion: Illusion | undefined;
+
+             if (enemy.targetId && enemy.targetId !== 'hero') {
+                 targetIllusion = illusionsList.find(ill => ill.id === enemy.targetId);
+                 if (targetIllusion) {
+                     targetIsHero = false;
+                 } else {
+                     enemy.targetId = 'hero'; // Revert if dead
+                 }
              }
+
+             if (targetIsHero) {
+                 if (!currentStats.trueStrike && Math.random() < currentStats.evasion) hit = false;
+                 if (hit) {
+                     const dmg = enemy.damage;
+                     let mitigation = 1 - ((0.06 * currentStats.armor) / (1 + 0.06 * currentStats.armor));
+                     currentHp -= Math.max(1, dmg * mitigation);
+                 } else {
+                     addFrameText("MISS", heroRef.current.x, heroRef.current.y, "text-slate-500 font-bold");
+                 }
+             } else if (targetIllusion) {
+                 // Attack Illusion (No Evasion for Illusions currently for simplicity, but damage multiplier applies)
+                 const dmg = enemy.damage * targetIllusion.incomingDmgMult;
+                 targetIllusion.hp -= dmg;
+                 addFrameText(`${Math.floor(dmg)}`, targetIllusion.x, targetIllusion.y - 10, "text-gray-500 font-mono text-xs");
+             }
+             
              enemy.lastAttack = now;
           }
       }
